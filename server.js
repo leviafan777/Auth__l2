@@ -4,34 +4,31 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
-
 const app = express();
 const port = 3000;
-
-// Путь к файлу базы данных
 const dbPath = path.join(__dirname, 'db.json');
 
-// Настройка сессий
+
 app.use(session({
-    secret: 'secret-key', // Секретный ключ для шифрования сессий
+    secret: 'secret-key', 
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Используем false, чтобы работало на HTTP
+    cookie: { secure: false } 
 }));
 
-// Мидлвары для обработки данных формы
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Обслуживание статических файлов
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Функция для чтения базы данных
+
 const readDatabase = () => {
     return new Promise((resolve, reject) => {
         fs.readFile(dbPath, 'utf8', (err, data) => {
             if (err) return reject(err);
-            let db = { Users: [] }; // Пустая база, если файла еще нет
+            let db = { Users: [] }; 
             try {
                 db = JSON.parse(data);
             } catch (e) {
@@ -42,7 +39,7 @@ const readDatabase = () => {
     });
 };
 
-// Функция для записи в базу данных
+
 const writeDatabase = (db) => {
     return new Promise((resolve, reject) => {
         fs.writeFile(dbPath, JSON.stringify(db, null, 2), (err) => {
@@ -52,23 +49,23 @@ const writeDatabase = (db) => {
     });
 };
 
-// Обработчик GET для страницы регистрации
+
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'registration.html'));
 });
 
-// Обработчик GET для страницы входа
+
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'entry.html'));
 });
 
-// Обработчик GET для профиля
+
 app.get('/profile', async (req, res) => {
     if (!req.session.user) {
-        return res.redirect('/login'); // Если пользователь не залогинен, редирект на /login
+        return res.redirect('/login'); 
     }
 
-    const user = req.session.user;  // Используем данные пользователя из сессии
+    const user = req.session.user;  
     const profilePage = `
         <html lang="ru">
         <head>
@@ -147,16 +144,16 @@ app.get('/profile', async (req, res) => {
     res.send(profilePage);
 });
 
-// Обработчик POST для входа
+
 app.post('/entry', async (req, res) => {
     const { username, password } = req.body;
 
     try {
         const db = await readDatabase();
-        const user = db.Users.find(u => u.email === username); // Поиск по email
+        const user = db.Users.find(u => u.email === username); 
         if (user && await bcrypt.compare(password, user.password)) {
             req.session.user = user;
-            res.redirect('/profile'); // Редирект на страницу профиля
+            res.redirect('/profile'); 
         } else {
             res.status(401).send('Неверный email или пароль');
         }
@@ -166,7 +163,7 @@ app.post('/entry', async (req, res) => {
     }
 });
 
-// Обработчик POST для регистрации
+
 app.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -181,21 +178,21 @@ app.post('/register', async (req, res) => {
     try {
         const db = await readDatabase();
 
-        // Проверяем, существует ли уже такой email
+       
         if (db.Users.some(u => u.email === email)) {
             return res.status(400).send('Пользователь с таким email уже существует');
         }
 
         db.Users.push(newUser);
         await writeDatabase(db);
-        res.redirect('/login'); // Перенаправляем на страницу входа
+        res.redirect('/login'); 
     } catch (err) {
         console.error('Ошибка при регистрации пользователя:', err);
         res.status(500).send('Ошибка при сохранении данных');
     }
 });
 
-// Обработчик выхода из системы
+
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -206,7 +203,7 @@ app.get('/logout', (req, res) => {
     });
 });
 
-// Запуск сервера
+
 app.listen(port, () => {
     console.log(`Сервер работает на http://localhost:${port}`);
 });
